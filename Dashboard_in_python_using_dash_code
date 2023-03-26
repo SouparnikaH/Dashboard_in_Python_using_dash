@@ -1,0 +1,117 @@
+import dash
+from dash import html
+from dash import dcc
+import pandas as pd
+import plotly.graph_objs as go
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.graphics.mosaicplot import mosaic
+data = pd.read_csv('data.csv')
+
+# Histogram
+plt.hist(data['N'])
+plt.title('Distribution of nitrogen levels')
+plt.xlabel('Nitrogen')
+plt.ylabel('Count')
+plt.show()
+
+# Boxplot
+sns.boxplot(x='label', y='N', data=data)
+plt.title('Distribution of nitrogen levels by crop type')
+plt.show()
+
+# Scatterplot
+sns.scatterplot(x='P', y='K', hue='label', data=data)
+plt.title('Relation between phosphorous and potassium levels by crop type')
+plt.show()
+
+# Barplot
+sns.barplot(x='label', y='rainfall', data=data)
+plt.title('Average rainfall by crop type')
+plt.show()
+
+# Subset data
+subset_data = data[['N', 'P', 'K', 'temperature', 'humidity', 'rainfall', 'label']]
+
+
+crosstab_data = pd.crosstab(index=subset_data['label'], columns=[subset_data['N'], subset_data['P'], subset_data['K']])
+
+
+ax = crosstab_data.plot(kind='bar', stacked=True, colormap='Pastel2')
+ax.set_title('Crop Recommendation Mosaic Plot')
+ax.set_xlabel('label')
+ax.set_ylabel('N')
+plt.show()
+
+
+# Create dashboard using dash
+app = dash.Dash(__name__)
+
+
+app.layout = html.Div(children=[
+    html.H1(children='Crop Recommendation Dashboard'),
+
+    html.Div(children='''
+        Visualizing crop recommendation based on various factors.
+    '''),
+
+    dcc.Graph(
+        id='nitrogen-levels-histogram',
+        figure={
+            'data': [
+                {'x': subset_data['N'], 'type': 'histogram', 'name': 'Nitrogen level distribution'},
+            ],
+            'layout': {
+                'title': 'Distribution of nitrogen levels'
+            }
+        }
+    ),
+
+    dcc.Graph(
+        id='crop-wise-boxplot',
+        figure={
+            'data': [
+                {'x': subset_data['label'], 'y': subset_data['N'], 'type': 'box', 'name': 'Nitrogen levels by crop type'},
+            ],
+            'layout': {
+                'title': 'Distribution of nitrogen levels by crop type'
+            }
+        }
+    ),
+
+    dcc.Graph(
+        id='phosphorous-potassium-scatterplot',
+        figure={
+            'data': [
+                {'x': subset_data['P'], 'y':subset_data['K'], 'mode': 'markers', 'marker': {'color': subset_data['label']}, 'name': 'Phosphorous and potassium levels by crop type'},
+            ],
+            'layout': {
+                'title': 'Relation between phosphorous and potassium levels by crop type'
+            }
+        }
+    ),
+
+    dcc.Graph(
+        id='rainfall-barplot',
+        figure={
+            'data': [
+                {'x': subset_data['label'], 'y': subset_data['rainfall'], 'type': 'bar', 'name': 'Average rainfall by crop type'},
+            ],
+            'layout': {
+                'title': 'Average rainfall by crop type'
+            }
+        }
+    ),
+dcc.Graph(
+        id='mosaic-plot',
+        figure={
+            'data': [go.Scatter(x=data['label'], y=data['N'], mode='markers')],
+            'layout': {'title': 'Mosaic Plot of Crop and Nitrogen Content'}
+        }
+    )
+])
+
+
+
+if __name__ == '__main__':
+    app.run_server(port=8050)
